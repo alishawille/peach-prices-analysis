@@ -8,4 +8,4 @@ Download the peachpriceproject.Rmd file and the peaches.csv file. Place the file
 
 To view my report via browser:
 
-Go to the peachpriceproject.html file. Click on the three dots and press "Download". A new tab containing my report will open.
+Go to the peachpriceproject.html file. Click on the three dots and press "Download". The file will download on the browser. Once the downloaded file is clicked on, a new tab containing my report will open.
