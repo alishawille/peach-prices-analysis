@@ -1,0 +1,455 @@
+---
+title: "Peach Prices Analysis"
+author: "Alisha Wille"
+date: "2025-08-24"
+output: 
+  html_document:
+    theme: journal
+    toc: true
+    toc_float:
+      collapsed: true
+---
+
+```{=html}
+<style>
+  body {
+    background-color: #fff6f0;
+  }
+  
+  h1.title {
+  color: #E86C64;
+  font-family: "Quicksand", sans-serif;
+}
+
+h4.author, h4.date {
+  color: #F4A259;
+  font-family: "Quicksand", sans-serif;
+}
+
+</style>
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+# import and read data
+peaches <- read.csv("peaches.csv")
+
+# libraries
+library(tidyverse)
+library(leaflet)
+library(scales)
+library(kableExtra)
+library(broom)
+```
+
+```{r}
+# clean up dataset
+dollar_cols <- c("PerPoundPrice", "EstPound", "SixteenthBushelPrice", "SecondsPrice")
+
+peaches[dollar_cols] <- lapply(peaches[dollar_cols], function(x) as.numeric(gsub("\\$", "", x)))
+
+peaches$SecondsBox[peaches$SecondsBox == ""] <- NA
+
+peaches$Type[12] <- "Chain Store"
+peaches[peaches == "Yes"] <- 1
+peaches[peaches == "No"] <- 0
+
+peaches$LocalPeaches <- as.numeric(peaches$LocalPeaches)
+
+# make new variable for analysis
+peaches$EstSeconds <- round((peaches$SecondsPrice / peaches$SecondsPound), 2)
+peaches <- peaches |> relocate(EstSeconds, .after = SecondsPound)
+```
+
+# [Introduction]{style="color: #E86C64;"}
+
+<br>
+
+![](https://images.unsplash.com/photo-1438274754346-45322cac87e4?q=80&w=2048&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)
+
+<br>
+
+I was born and raised in Fredericksburg, Texas. While small in population, Fredericksburg is a huge tourist town, with many people coming in for peaches, wine, or shopping. This summer, I wanted to create a project reflective of my community and its local economy. And what better way than peaches?
+
+Peaches are huge in the Fredericksburg area. Highways leading into town are lined with various peach stands selling local produce, and there is even a festival each June to celebrate peach season. Thinking about all the different places selling peaches, I had the question: how do prices between peaches vary in my local community, and why? In this report, I investigate [what factors influence peach prices between locations in the Fredericksburg area.]{style="color: #F4A259;"}
+
+# [Data Collection & Description]{style="color: #E86C64;"}
+
+<br> 
+
+I collected the data on Thursday, July 10, 2025. I visited every open location selling peaches on this day, ranging from small stands to chain grocery stores. I wasn't able to include every location in the dataset due to some being closed, but I included the majority. Recognizing my limitations as a student and sole contributor to the project, I stuck to recording easily observable or attainable information. A description of each variable is listed in the table below:
+
+<br>
+
+```{r}
+# variable explanation table
+
+var_table <- tribble(
+  ~`Variable Name`, ~`Variable Type`, ~Explanation,
+  "Name", "Nominal", "Name of the location",
+  "Address", "Nominal", "Address of the location",
+  "Type", "Nominal", "Category of location, such as 'Roadside Stand' or 'Local Store'",
+  "PerPoundPrice", "Continuous", "Price of peaches by the pound",
+  "EstPound", "Continuous", "If no per pound price was available, divided SixteenthBushelPrice by 3.125",
+  "SixteenthBushelPrice", "Continuous", "Price of peaches per 1/16 bushel",
+  "SecondsPrice", "Continuous", "Price of seconds by smallest size offered",
+  "SecondsBox", "Nominal", "Smallest partial bushel size of seconds peaches offered",
+  "SecondsPound", "Continuous", "Weight in estimated pounds of SecondsBox",
+  "EstSeconds", "Continuous", "If no per pound price was available, divided SecondsPrice by SecondsPound",
+  "Acreage", "Continuous", "Number of acres the peaches are grown on",
+  "HwyLocation", "Nominal", "Name of highway the location is located on, or marked as 'Town' if in town",
+  "MileLocation", "Continuous", "Distance in miles from center of town, marked as Marktplatz",
+  "LocalPeaches", "Binary", "'1' if peaches are local, '0' otherwise",
+  "OtherProduce", "Binary", "'1' if location sells other fresh fruits or vegetables, '0' otherwise",
+  "OtherMerch", "Binary", "'1' if location sells other merchandise, such as shirts or jarred goods, '0' otherwise",
+  "Dessert", "Binary", "'1' if location sells dessert such as cobbler or ice cream, '0' otherwise",
+  "Notes", "Nominal", "Extra notes"
+)
+
+var_table |>
+  kable(align = "l") |>
+  kable_styling(
+    bootstrap_options = ("striped")
+  ) |>
+  row_spec(0, background = "#E86C64", color = "white", bold = TRUE) |>
+  row_spec(seq(2, nrow(var_table), by = 2), background = "#fff6f0") |>
+  scroll_box(width = "100%", height = "400px")
+```
+
+<br>
+
+Furthermore, the first six rows of the data are shown below:
+
+<br>
+
+```{r}
+# show dataset head
+head(peaches) |>
+  kable(align = "l") |>
+  kable_styling(bootstrap_options = c("striped", "condensed"),
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#E86C64") |>
+  scroll_box(width = "100%", height = "400px")
+```
+
+# [Exploratory Analysis]{style="color: #E86C64;"}
+
+<br>
+
+The graphs below help to visualize patterns in the data and identify potential trends.
+
+<br>
+
+```{r}
+# graph for pound price vs mile location 
+ggplot(peaches, aes(x = EstPound, y = MileLocation)) +
+  geom_point(color = '#799c74', size = 4) +
+  geom_smooth(method = "lm", se = FALSE, color = '#c1dabb') +
+  theme_light() +
+    theme(plot.background = element_rect(fill = "#fff6f0", color = NA)) +
+  labs(
+    title = "Estimated Per Pound Peach Price v. Miles from Town Center",
+    x = "Estimated Per Pound Peach Price ($)",
+    y = "Miles from Town Center"
+  )
+```
+
+The scatterplot shows that the distance that the location is from the center of town could relate to an increase in per pound peach prices.
+
+<br>
+
+```{r}
+# graph for avg pound price vs type 
+peaches |>
+  group_by(Type) |>
+  summarize(avg_pound = mean(EstPound, na.rm = TRUE)) |>
+  ggplot(aes(x = Type, y = avg_pound)) +
+  geom_col(col = "#799c74", fill = "#c1dabb") +
+  geom_text(aes(label = dollar(avg_pound)), vjust = -0.5, size = 4) +
+  theme_light() +
+  theme(plot.background = element_rect(fill = "#fff6f0", color = NA)) +
+  labs(
+    title = "Average Per Pound Peach Price by Type of Location",
+    x = "Location Type",
+    y = "Average Per Pound Peach Price ($)"
+  )
+```
+
+The graph shows chain stores as having the lowest per pound peach prices at an average of \$2.74 per pound. Local stores are shown as having the highest per pound peach prices at \$6.00 per pound. However, this could be explained by the fact that there are only two "Local Store" locations in the dataset, both owned by the same company. Roadside stands closely follow local stores at an average of $5.90 per pound.
+
+<br>
+
+```{r}
+# graph for avg pound price vs hwy location
+peaches |>
+  group_by(HwyLocation) |>
+  summarize(avg_pound = mean(EstPound, na.rm = TRUE)) |>
+  ggplot(aes(x = HwyLocation, y = avg_pound)) +
+  geom_col(col = "#799c74", fill = "#c1dabb") +
+  geom_text(aes(label = dollar(avg_pound)), vjust = -0.5, size = 4) +
+  theme_light() +
+  theme(plot.background = element_rect(fill = "#fff6f0", color = NA)) +
+    labs(
+    title = "Average Per Pound Peach Price by Highway Location",
+    x = "Highway Location",
+    y = "Average Per Pound Peach Price ($)"
+  )
+```
+
+There are several different highways that peaches are typically sold on in the area. The graph shows in-town as having the lowest peach prices at \$3.56 per pound. US-290 has the highest peach prices at \$5.94 per pound.
+
+<br>
+
+```{r}
+# graph for LocalPeaches
+peaches |>
+  group_by(LocalPeaches) |>
+  summarize(avg_pound = mean(EstPound, na.rm = TRUE)) |>
+  ggplot(aes(x = LocalPeaches, y = avg_pound)) +
+  geom_col(col = "#799c74", fill = "#c1dabb") +
+  geom_text(aes(label = dollar(avg_pound)), vjust = -0.5, size = 4) +
+  theme_light() +
+  theme(plot.background = element_rect(fill = "#fff6f0", color = NA)) +
+    labs(
+    title = "Average Per Pound Peach Price for Local v. Not Local",
+    x = "Locality",
+    y = "Average Per Pound Peach Price ($)"
+  )
+```
+
+The average price (per pound) for non-local peaches was \$2.74, while the average price for local peaches was \$5.78. Local peaches are sold for much higher prices than nonlocal peaches.
+
+<br>
+
+```{r}
+# graph for pound price vs acreage
+ggplot(peaches, aes(x = EstPound, y = Acreage)) +
+  geom_point(color = '#799c74', size = 4) +
+  geom_smooth(method = "lm", se = FALSE, color = '#c1dabb') +
+  scale_x_continuous(limits = c(4, NA)) +
+  theme_light() +
+  theme(plot.background = element_rect(fill = "#fff6f0", color = NA)) +
+  labs(
+    title = "Average Per Pound Peach Price ($) v. Acreage",
+    x = "Average Per Pound Peach Price ($)",
+    y = "Acreage"
+  )
+```
+
+The graph shows a slight increase in peach prices as the number of acres they're grown on increases.
+
+<br>
+
+# [Statistical Analysis]{style="color: #E86C64;"}
+
+<br>
+
+The main variable I use in my statistical analysis is EstPound, which is the estimated per pound price in dollars of the peaches being sold at each location.
+
+### [Linear Regression]{style="color: #E86C64;"}
+
+```{r}
+peachlm_a <- lm(EstPound ~ MileLocation, data = peaches)
+
+tidy(peachlm_a, conf.int = TRUE) |>
+  kable(digits = 3, caption = "EstPound vs MileLocation Linear Model") |>
+  kable_styling(bootstrap_options = c("striped"), 
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#E86C64")
+
+glance(peachlm_a) |>
+  select(r.squared, adj.r.squared, sigma, statistic, p.value, df, AIC) |>
+  kable(digits = 3, caption = "EstPound vs MileLocation Model Summary Statistics") |>
+  kable_styling(bootstrap_options = c("striped"), 
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#F4A259")
+
+```
+
+The intercept estimate is 4.110 and the MileLocation estimate is 0.161. This indicates that for every 1 mile a location is from the center of town, the price of peaches will increase by 16 cents. The p-value for this is 0.042 and the 95% confidence interval is [0.007, 0.315], meaning that this information is statistically significant. The R squared is 0.324 so 32.4% of variation is explained by the MileLocation variable. 
+
+<br>
+
+```{r}
+peachlm_b <- lm(EstPound ~ Acreage, data = peaches)
+
+tidy(peachlm_b, conf.int = TRUE) |>
+  kable(digits = 3, caption = "EstPound vs Acreage Linear Model") |>
+  kable_styling(bootstrap_options = c("striped"), 
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#E86C64")
+
+glance(peachlm_b) |>
+  select(r.squared, adj.r.squared, sigma, statistic, p.value, df, AIC) |>
+  kable(digits = 3, caption = "EstPound vs Acreage Model Summary Statistics") |>
+  kable_styling(bootstrap_options = c("striped"), 
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#F4A259")
+```
+
+The intercept estimate is 5.599 and the Acreage estimate is 0.001. This indicates that for every 1 additional acre peaches are grown on, price increases by 1/10 of a cent. The p-value for this is 0.69 and the 95% confidence interval is [-0.005, 0.007], meaning that this is not statistically significant. 
+
+<br>
+
+### [ANOVA]{style="color: #E86C64;"}
+
+```{r}
+# anova
+aov_result_a <- aov(EstPound ~ Type, data = peaches)
+
+tidy(aov_result_a) |>
+  kable(digits = 3, caption = "ANOVA: EstPound by Type") |>
+  kable_styling(bootstrap_options = c("striped"),
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#E86C64")
+```
+
+The ANOVA results show a statistically significant effect on peach prices based on location type. The F-value statistic is high at 13.198, with a p-value of 0.001. The average per pound peach price significantly differed between the Type variable. Differences between group means differed by over 13 times larger amounts than differences between groups.
+
+<br>
+
+```{r}
+# anova test EstPound by HwyLocation
+aov_result_b <- aov(EstPound ~ HwyLocation, data = peaches)
+
+tidy(aov_result_b) |>
+  kable(digits = 3, caption = "ANOVA: EstPound by HwyLocation") |>
+  kable_styling(bootstrap_options = c("striped"),
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#E86C64")
+
+```
+
+The ANOVA test shows the F-value statistic at 3.302 and the p-value at 0.071, meaning that the variation in average per pound peach prices by highway location is not statistically significant.
+
+<br>
+
+### [T-Test]{style="color: #E86C64;"}
+
+```{r}
+# t-test for EstPound by LocalPeaches
+t_test_a <- t.test(EstPound ~ LocalPeaches, data = peaches)
+
+tidy(t_test_a) |>
+  kable(digits = 3, caption = "T-Test: EstPound by LocalPeaches") |>
+  kable_styling(bootstrap_options = c("striped"),
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#F4A259")
+```
+
+The estimate is -3.036, meaning non-local peaches are roughly $3.04 cheaper per pound. The p-value is 0.028 and the 95% confidence interval is [-5.350, -0.722], meaning that this is statistically significant and that the true difference in non-local peaches is anywhere from \$0.72 to \$5.35 cheaper than local peaches.
+
+<br>
+
+### [Multiple Regressions]{style="color: #E86C64;"}
+
+```{r}
+# multiple regressions
+
+mult_lm_a <- lm(EstPound ~ MileLocation + Acreage + EstSeconds, data = peaches)
+
+tidy(mult_lm_a, conf.int = TRUE) |>
+  kable(digits = 3, caption = "EstPound vs MileLocation, Acreage, EstSeconds Linear Model") |>
+  kable_styling(bootstrap_options = c("striped"), 
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#E86C64")
+
+glance(mult_lm_a) |>
+  select(r.squared, adj.r.squared, sigma, statistic, p.value, df, AIC) |>
+  kable(digits = 3, caption = "EstPound vs MileLocation, Acreage, EstSeconds Model Summary Statistics") |>
+  kable_styling(bootstrap_options = c("striped"), 
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#F4A259")
+```
+
+The model predicts EstPound from MileLocation, Acreage, and EstSeconds. MileLocation remains significant when accounting for Acreage and EstSeconds, having a p-value of 0.041 and a 95% confidence interval of [0.012, 0.231]. The estimate is 0.122, so per pound peach prices increase by roughly 12 cents per mile further out of town a location is. EstSeconds has a p-value of 0.047 and confidence interval of [0.030, 1.796], meaning it is also a significant predictor when accounting for these other factors. The estimate is 0.913, meaning that for every \$1 dollar increase in seconds (peaches that are small/have blemishes), regular peach prices increase by 91 cents. Acreage has a p-value of 0.133 and confidence interval of [-0.008,0.002], showing that it is not statistically significant. The model explains 94.6% of the variance in EstPound (adjusted r-squared value 0.865). The p-value of the model is 0.08, likely due to the small size of the data.
+
+<br>
+
+```{r}
+mult_lm_b <- lm(EstPound ~ Type + HwyLocation + MileLocation, data = peaches)
+
+tidy(mult_lm_b, conf.int = TRUE) |>
+  kable(digits = 3, caption = "EstPound vs Type, HwyLocation, MileLocation Linear Model") |>
+  kable_styling(bootstrap_options = c("striped"), 
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#E86C64")
+
+glance(mult_lm_b) |>
+  select(r.squared, adj.r.squared, sigma, statistic, p.value, df, AIC) |>
+  kable(digits = 3, caption = "EstPound vs Type, HwyLocation, MileLocation Model Summary Statistics") |>
+  kable_styling(bootstrap_options = c("striped"), 
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#F4A259")
+
+```
+
+The model predicts EstPound from MileLocation, Type, and HwyLocation. It explains around 87.1% of the variation in EstPound (adjusted r-squared 0.692), with a p-value of 0.051. The baseline factor is the Chain Store type of location. The only statistically significant factor in the model is Local Store, with a p-value of 0.018 and a 95% confidence interval of [0.865, 5.806]. The model shows Local Stores having an estimated $3.34 higher peach price per pound than Chain Stores. Again, this is likely because there are only two local store locations, both with the same owners. Market-Style Stands and Roadside Stands show positive increases as well, but these are ultimately statistically insignificant. The HwyLocation variable is still not shown to significantly impact per pound peach prices according to the model. Furthermore, the previous significance of MileLocation seems to disappear once accounting for the Type variable.
+
+<br>
+
+```{r}
+mult_lm_c <- lm(EstPound ~ LocalPeaches + MileLocation, data = peaches)
+
+tidy(mult_lm_c, conf.int = TRUE) |>
+  kable(digits = 3, caption = "EstPound vs LocalPeaches, MileLocation Linear Model") |>
+  kable_styling(bootstrap_options = c("striped"), 
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#E86C64")
+
+glance(mult_lm_c) |>
+  select(r.squared, adj.r.squared, sigma, statistic, p.value, df, AIC) |>
+  kable(digits = 3, caption = "EstPound vs LocalPeaches, MileLocation Model Summary Statistics") |>
+  kable_styling(bootstrap_options = c("striped"), 
+                full_width = F) |>
+  row_spec(0, bold = TRUE, color = "white", background = "#F4A259")
+
+```
+
+The model predicts EstPound from LocalPeaches and MileLocation. It explains around 80.8% of variation in EstPound (adjusted r-squared 0.769) with a p-value of 0. The model shows the p-value for LocalPeaches at 0.001, with a confidence interval of [1.547, 4.022]. The estimate for LocalPeaches is 2.785, meaning local peaches sell for roughly \$2.79 per pound more than nonlocal peaches. The significance of MileLocation once again disappears in the model once accounting for LocalPeaches. The estimate is 0.040, meaning price increases by 4 cents per every mile further out of town.
+
+<br>
+
+# [Results and Analysis]{style="color: #E86C64;"}
+
+<br>
+
+The data indicates that [Type]{style="color: #F4A259;"}, [LocalPeaches]{style="color: #F4A259;"}, and [EstSeconds]{style="color: #F4A259;"} have a significant effect on the EstPound variable. The significance of MileLocation was relevant in simple models, but explained away by other variables. HwyLocation and Acreage were not significant predictors. 
+
+On its own, MileLocation was a significant predictor with an estimate of 0.161 and p-value 0.042. When combined with Acreage and EstSeconds in multiple regression, the effect of MileLocation remains significant with an estimate of 0.122 and p-value 0.041. When compared with Type and HwyLocation in multiple regression, the estimate for MileLocation is 0.120 and p-value 0.312. When compared with LocalPeaches, the MileLocation estimate is 0.040 and p-value 0.409.
+
+Type is a significant predictor of peach prices. The ANOVA table results show an F-value statistic of 13.198 and p-value of 0.001. When compared with MileLocation and HwyLocation in multiple regression, Local Store has an estimate of 3.336 and p-value 0.018.
+
+LocalPeaches was a significant predictor as well. The t-test for LocalPeaches has an estimate of -3.036 and p-value 0.028. The multiple regression for LocalPeaches and MileLocation has an estimate of 2.785 and p-value 0.001.
+
+Finally, EstSeconds seemed to also be a significant predictor. Compared with MileLocation and Acreage in multiple regression, EstSeconds had an estimate of 0.913 and p-value 0.047.
+
+# [Conclusions]{style="color: #E86C64;"}
+
+<br>
+
+[The type of location, whether peaches were local or not, and whether a location offered seconds or not affect peach prices significantly.]{style="color: #F4A259;"}
+
+While the distance a location selling peaches is from the center of town was a significant predictor on its own, the tests reveal that the true predictors were the type of location and whether peaches were local or not. When accounting for the acreage peaches are grown on and whether a location offers seconds, the distance a location was from the center of town had a significant effect. This effect disappears, however, when accounting for type of location, such as chain stores, roadside stands, etc. This suggests that the MileLocation effect actually reflects store type rather than distance. Most chain stores in the data are located in town. These locations tend to sell lower peach prices and be closer to the center of town. Market-style or roadside stands tend to be located out of town and sell peaches for higher prices.
+Furthermore, peach source is closely related to location type and was also shown as a very strong predictor of peach prices. Chain stores tend to sell cheaper non-local peaches, while other locations sell higher-priced local peaches. 
+
+Whether a location offered seconds, which are peaches that tend to be smaller or have imperfections/blemishes, also seemed to be a significant predictor leading to an increase in per pound peach prices. Having entire boxes dedicated to imperfect peaches could naturally result in higher quality of "first-pick" peach boxes, therefore allowing these locations to charge more for their regular boxes of peaches.
+
+These results reflect the nature of the local economy in Fredericksburg. Peaches are an enormous part of tourism in the town, with the idea of buying local Fredericksburg peaches bringing in tourists from all over the state, and sometimes even the country. These stands and local stores, sourced from local growers, charge more than chain stores selling non-local peaches. While the cheaper peaches may be found in chain stores, consumers are willing to pay more for the quality and locality of Fredericksburg peaches.
+
+# [Notes and Comments]{style="color: #E86C64;"}
+
+<br>
+
+Of course, there are many more factors influencing peach prices, such as whether it's a good season or not, how many trees an orchard has, how much it costs to operate the location, and more. As a singular student completing this project, I thought it was best to stick to data that was mostly observational and easy to collect. I wanted to investigate prices between stands at one snapshot in time, which is why factors such as weather etc. weren't recorded. The number of trees per orchard is hard to record due to factors such as crop rotation, frequent planting/uprooting, and many orchards simply not counting how many trees there are.
+
+As for the data, I decided to use specific numbers for my calculations. I used 147 grams/0.324 lb as the average weight of a peach, which is the average weight listed by the [FDA](https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/raw-fruits-poster-text-version-accessible-version).
+
+The weight of a bushel of peaches is roughly 50 lbs according to the [FCIC](https://www.rma.usda.gov/sites/default/files/crop-policies/Peach-Crop-Provisions-23-0034.pdf). For estimates of partial bushel weights, many people round up or use estimates (such as a half bushel being 28 lbs, etc.). For my purposes, I simply divided by 2, making a 1/2 bushel 25 lbs, a 1/4 bushel 12.5 lbs, a 1/8 bushel 6.25 lbs, and a 1/16 bushel 3.125 lbs.
+
+For the Harvest Hill Farm Market price, there were roughly 5 peaches per box sold for \$9. I multiplied 5 * 0.324 to get the total weight of the box. I then divided \$9 by 1.62 to get the per pound price of \$5.56.
+
+To expand upon the report, more locations could be visited to record data over a week's time. To incorporate factors such as growing season, locations could be visited over multiple years.

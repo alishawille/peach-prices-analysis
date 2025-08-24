@@ -1,0 +1,14 @@
+Name,Address,Type,PerPoundPrice,EstPound,SixteenthBushelPrice,SecondsPrice,SecondsBox,SecondsPound,Acreage,HwyLocation,MileLocation,LocalPeaches,OtherProduce,OtherMerch,Dessert,Notes
+Behrend's Orchards,"4579 US-290, Fredericksburg, TX 78624",Roadside Stand,,$5.76,$18,$14,1/8,6.25,,US-290,4.7,Yes,Yes,Yes,No,
+Burg's Corner,"15194 US-290, Stonewall, TX 78671",Market-Style Stand,$6.00,$6.00,$20,$30,,24.5,100,US-290,15.3,Yes,Yes,Yes,Yes,seconds weigh 24-25 lbs. used middle number
+Das Peach Haus - Tha Stand,"1180 S US Hwy 87, Fredericksburg, TX 78624",Roadside Stand,,$5.12,$16,$2,,1,60,US Hwy 87,1.7,Yes,Yes,Yes,Yes,
+Donald Eckhardt Orchards,"2150 S US Hwy 87, Fredericksburg, TX 78624",Market-Style Stand,,$5.44,$17,$15,1/8,6.25,66,US Hwy 87,2.6,Yes,Yes,Yes,Yes,other seconds: $28 1/4
+Jenschke Orchards,"8301 US-290, Fredericksburg, TX 78624",Market-Style Stand,,$4.80,$15,$35,1/2,25,100,US-290,8.4,Yes,Yes,Yes,Yes,
+Vogel Orchard,"12862 US-290, Fredericksburg, TX 78624",Roadside Stand,,$7.04,$22,$9,1/16,3.125,70,US-290,12.9,Yes,Yes,Yes,Yes,"other seconds: $18 1/8, $45 1/2"
+Harvest Hill Farm Market ,"12918 S State Hwy 16, Fredericksburg, TX 78624",Roadside Stand,,$5.56,,,,,5,Hwy 16,12.8,Yes,Yes,No,No,$9 and roughly 5 peaches per container. does not weigh.
+Engel Orchards,"9992 US-290, Fredericksburg, TX 78624",Roadside Stand,,$6.04,$20,$10,1/16,3.125,430,US-290,10,Yes,Yes,Yes,Yes,
+Fresh Pickens - in town,"206 N Milam St Suite 100, Fredericksburg, TX 78624",Local Store,$6.00,$6.00,$22,,,,,Town,0.5,Yes,Yes,Yes,Yes,
+HEB,"407 S Adams St, Fredericksburg, TX 78624",Chain Store,$2.48,$2.48,,,,,,Town,0.5,No,Yes,Yes,Yes,
+Walmart,"1435 E Main St, Fredericksburg, TX 78624",Chain Store,,$1.85,,,,,,Town,2.1,No,Yes,Yes,Yes,$0.60 per peach. on rollback
+Natural Grocers,"610 E Main St, Fredericksburg, TX 78624",Chain store,$3.89,$3.89,,,,,,Town,0.8,No,Yes,Yes,Yes,organic
+Fresh Pickens - out of town,"58 Farm to Market 1376, Fredericksburg, TX 78624",Local Store,$6.00,$6.00,$22,,,,,US-290,5.8,Yes,Yes,Yes,Yes,
